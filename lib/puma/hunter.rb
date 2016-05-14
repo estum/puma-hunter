@@ -42,7 +42,7 @@ class Puma::Hunter
   end
 
   def used_bytes
-    @used_bytes ||= workers.reduce { |a, e| a + e[:rss] }
+    @used_bytes ||= workers.reduce(0) { |a, e| a + e[:rss] }
   end
 
   def simulate?
