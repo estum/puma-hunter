@@ -1,8 +1,6 @@
 # Puma::Hunter
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/puma/hunter`. To experiment with that code, run `bin/console` for an interactive prompt.
-
-TODO: Delete this and the text above, and describe your gem
+This gem provides a separated service to kill puma workers without needing to add extra thread in your master worker process. It can be simply executed with a cron, systemd timers or other scheduling service.
 
 ## Installation
 
@@ -22,8 +20,47 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+    $ puma-hunter -m 4512 /path/to/puma_pidfile.pid
 
+Simply run when you need, it will kill the tallest worker in the cluster if sum of RSS usage is gt 4512 Mb:
+
+### systemd
+
+Example systemd timer:
+
+```ini
+[Unit]
+Description="Puma Hunter Timer"
+
+[Timer]
+OnCalendar=*-*-* *:0/1:00
+Unit=puma-hunter.service
+
+[Install]
+WantedBy=basic.target
+```
+
+service unit:
+
+```ini
+[Unit]
+Description="Puma Hunter Combined"
+
+[Service]
+User=user
+Environment=SIGNAL=TERM
+# Add as many ExecStart lines as you need for master processes:
+ExecStart=/usr/local/rvm/wrappers/ruby-2.3.0/puma-hunter -m 4512 /path/to/puma_pidfile.backend.pid
+# ExecStart=/usr/local/rvm/wrappers/ruby-2.3.0/puma-hunter -m 1500 /path/to/puma_pidfile.frontend.pid
+Nice=19
+Type=oneshot
+IOSchedulingClass=2
+IOSchedulingPriority=7
+SuccessExitStatus=1
+Restart=no
+StandardOutput=syslog
+SyslogFacility=cron
+```
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
